@@ -4,8 +4,8 @@
 
 # Site
 title: Pslilysm
-subtitle: 'Cxd's blog'
-description: 'A blog site about android and java'
+subtitle: 'A blog about android and java'
+description: 'cxds blog'
 keywords:
 author: Cxd
 language: en
@@ -98,7 +98,7 @@ ignore:
 # Extensions
 ## Plugins: https://hexo.io/plugins/
 ## Themes: https://hexo.io/themes/
-theme: fluid
+theme: hexo-theme-fluid
 
 # Deployment
 ## Docs: https://hexo.io/docs/one-command-deployment
