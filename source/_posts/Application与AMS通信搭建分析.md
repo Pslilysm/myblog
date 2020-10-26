@@ -1,15 +1,16 @@
 ---
-title: Hello World
+title: Application与AMS通信搭建分析
 date: 2020-10-26 18:27:00
 tags:
     - Android
+    - AMS
+    - ActivityThread
 ---
-## 疑问
-安卓的四大组件是受AMS所管理的，那么他们之间肯定有数据的通信，怎么建立起这个通信的呢？
+## 概述
+熟悉安卓开发的朋友都知道四大组件，同时也熟悉他们的生命周期，我们只需要在相应的生命周期里做相应的操作就可以了，比如Activity的onCreate()中初始化资源，onDestroy()中释放资源。但是否有想了解过这些方法是何时被回调又如何被回调的呢？这里就不得不提到四大组件的管理者ActivityManagerService(AMS),这个服务为一个系统服务，运行在system_server进程中。可以看出，AMS和我们APP的组件是运行在不同的进程中的，那么其中肯定存在进程的通信，怎么通信的呢？下面我们看看。
 
 ### AMS启动进程
-当AMS接受到请求创建我们应用的一个组件时，会先判断组件所需要的进程是否存在，如果不存在，则调用startProcessLocked方法向Zygote进程发送Socket,
-请求他Fork出一个子进程出来，进程创建完成后，即调用ActivityThread.main()方法进入我们的运行态。
+当AMS接受到请求创建我们应用的一个组件时，会先判断组件所需要的进程是否存在，如果不存在，则调用startProcessLocked方法向Zygote进程发送Socket,请求他Fork出一个子进程出来，进程创建完成后，即调用ActivityThread.main()方法进入我们APP的运行期了。
 
 ### ActivityThread.main()
 ``` java
@@ -68,34 +69,11 @@ tags:
 
         // 该类是IApplicationThread.Stub的实现类， 为BnBinder
         private class ApplicationThread extends IApplicationThread.Stub {
-            /... 
         }
-
     }
 ```
 
-More info: [Writing](https://hexo.io/docs/writing.html)
+APP进程创建后便运行ActivityThread的main()方法，首先准备消息循环，然后进行attach操作，最后循环消息。
+在attach操作里会通过ActivityManager.getService()获取AMS的BpBinder，实际上是通过ServiceManager来完成的。
+得到AMS的BpBinder后便将我们APP的一个ApplicationThread对象传递给AMS，这样AMS就能通过我们传给他的Binder来回调我们。
 
-### Run server
-
-``` bash
-$ hexo server
-```
-
-More info: [Server](https://hexo.io/docs/server.html)
-
-### Generate static files
-
-``` bash
-$ hexo generate
-```
-
-More info: [Generating](https://hexo.io/docs/generating.html)
-
-### Deploy to remote sites
-
-``` bash
-$ hexo deploy
-```
-
-More info: [Deployment](https://hexo.io/docs/one-command-deployment.html)
