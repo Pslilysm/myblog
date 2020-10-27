@@ -3,8 +3,7 @@ title: Handler、Looper、MessageQuene源码分析
 date: 2020-10-27 09:00:00
 tags:
     - Android
-    - AMS
-    - ActivityThread
+    - Handler
 ---
 ## 概述
 安卓的Handler线程同步消息机制使用频率是相当高的，比如Activity的runOnUiThread()、View.post()等都是使用的Handler，因此掌握这个技术是作为一个安卓开发人员必不可少的技能。
