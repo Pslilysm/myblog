@@ -1,5 +1,5 @@
 ---
-title: Handler、Looper、MessageQuene源码分析
+title: Handler、Looper、MessageQueue源码分析
 date: 2020-10-27 09:00:00
 tags:
     - Android
@@ -68,7 +68,7 @@ tags:
     }
 
 ```
-HandlerThread的源码非常简单，主要点还是Looper类的相关方法。
+HandlerThread的源码比较简单，主要点还是Looper类的相关方法。
 ``` java
     public final class Looper {
     
@@ -77,7 +77,8 @@ HandlerThread的源码非常简单，主要点还是Looper类的相关方法。
         }
 
         // ThreadLocal是一个泛型类，用于提供线程的局部变量。
-        // 比如说你在A线程的工作环境中通过ThreadLocal保存了一个对象，在B线程通过这个ThreadLocal的get方法是得不到任何东西的，只有在A线程的工作环境中才能获取A线程存入的值。
+        // 比如说你在A线程的工作环境中通过ThreadLocal保存了一个对象，在B线程通过这个ThreadLocal的get方法是得不到任何东西的，
+        // 只有在A线程的工作环境中才能获取A线程存入的值。
         static final ThreadLocal<Looper> sThreadLocal = new ThreadLocal<Looper>();
 
         // 将当前线程初始化Looper对象
@@ -111,7 +112,7 @@ HandlerThread的源码非常简单，主要点还是Looper类的相关方法。
             final MessageQueue queue = me.mQueue;
 
             for (;;) {
-                // 阻塞直到从MessageQuene读取到下一条消息为止
+                // 阻塞直到从MessageQueue读取到下一条消息为止
                 Message msg = queue.next(); 
                 if (msg == null) {
                     // 下一条消息返回null则退出消息循环
@@ -141,9 +142,6 @@ Looper.prepare()方法先为当前线程创建Looper，创建Looper的同时创�
 
 ### MessageQueue.next()
 ``` java
-
-     private long mPtr; // used by native code
-
     public final class MessageQueue {
     
         private long mPtr; // 本地的指针
@@ -160,7 +158,7 @@ Looper.prepare()方法先为当前线程创建Looper，创建Looper的同时创�
 
         Message next() {
             final long ptr = mPtr;
-            // 如果C层的MessageQuene指针为0， 退出
+            // 如果C层的MessageQueue指针为0， 退出
             if (ptr == 0) {
                 return null;
             }
@@ -269,9 +267,9 @@ Looper.prepare()方法先为当前线程创建Looper，创建Looper的同时创�
 ```
 Message类的next成员变量指向下一条Message，因此组成了一个单链表结构，为MessageQueue提供了一个按顺序读取消息的环境。
 而MessageQueue的next()方法则一直从这个单链表里读取第一条或插队消息返回。
-了解了MessageQuene的取出消息，下面看看发送消息时如何实现的。
+了解了MessageQueue的取出消息，下面看看发送消息时如何实现的。
 
-### 向MessageQuene发送消息
+### 向MessageQueue发送消息
 发送消息想必大家都很熟悉，直接调用Handler的sendMessage()就可以了，下面看看Handler的相关方法
 #### Handler.enqueueMessage()
 ``` java
@@ -293,7 +291,7 @@ Message类的next成员变量指向下一条Message，因此组成了一个单�
             mAsynchronous = async;
         }
     
-        // 将消息交给MessageQuene来插入队列
+        // 将消息交给MessageQueue来插入队列
         private boolean enqueueMessage(@NonNull MessageQueue queue, @NonNull Message msg,
                 long uptimeMillis) {
             // 将消息的targetHandler指向自己
@@ -336,7 +334,7 @@ Handler发送消息的方法最终还是交由他所绑定的MessageQueue来实�
             Message p = mMessages;
             boolean needWake;
             if (p == null || when == 0 || when < p.when) {
-                // 如果MessageQuene队列里没有消息 或者 msg要插在消息头的前面
+                // 如果MessageQueue队列里没有消息 或者 msg要插在消息头的前面
                 msg.next = p;
                 mMessages = msg;
                 // 是否需要唤醒等同于是否阻塞住了
@@ -358,7 +356,7 @@ Handler发送消息的方法最终还是交由他所绑定的MessageQueue来实�
                         break;
                     }
                     if (needWake && p.isAsynchronous()) {
-                        // 如果在找插入位置时发现前面也有插队的消息，那么说明MessageQuene现在肯定在找p并想处理掉他，所以设置不唤醒
+                        // 如果在找插入位置时发现前面也有插队的消息，那么说明MessageQueue现在肯定在找p并想处理掉他，所以设置不唤醒
                         needWake = false;
                     }
                 }
@@ -377,7 +375,7 @@ Handler发送消息的方法最终还是交由他所绑定的MessageQueue来实�
 MessageQueue对将要插入的消息进行排序，有必要时还会去唤醒正在阻塞的线程。
 ## 总结
 最后再简单归纳下消息机制：
-* Looper通过prepare()创建Looper并向TLS存入Looper，同时创建MessageQuene；
+* Looper通过prepare()创建Looper并向TLS存入Looper，同时创建MessageQueue；
 * 接着Looper通过loop()无限从MessageQueue读取消息，若没有消息或下一条消息还没到处理的时间MessageQueue则会阻塞，并在阻塞前会去运行一次IdleHandler；
 * Handler通过sendMessage()将Message插入到MessageQueue队列，并且在需要时将MessageQueue唤醒；
 安卓的消息机制java层源码基本上分析完了，想要深入的分析是如何唤醒MessageQueue就得去看C层的代码了。
