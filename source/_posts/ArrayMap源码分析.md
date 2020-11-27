@@ -31,14 +31,30 @@ ArrayMap是Android专门针对内存优化而设计的，用于取代Java API中
         private static final int BASE_SIZE = 4; // 缓存大小为4或8的数组
         private static final int CACHE_SIZE = 10; // 缓存数组的最多数量 大小4 和 8 的数组分别为10个，所以最多有20个数组缓存
 
-        static @Nullable Object[] mBaseCache; // 长度为4的缓存
-        static int mBaseCacheSize;
-        static @Nullable Object[] mTwiceBaseCache; // 长度为8的缓存
+        static @Nullable Object[] mBaseCache; // 单链表结构的数组 [0]指向下一个缓存 key-values为4的Array
+        static int mBaseCacheSize; // 已缓存的个数
+        static @Nullable Object[] mTwiceBaseCache; // 单链表结构的数组 [0]指向下一个缓存 key-values为8的Array
         static int mTwiceBaseCacheSize;
 
         int[] mHashes;         // 由key的hashcode所组成的数组
         Object[] mArray;       // 由key-value对所组成的数组，是mHashes大小的2倍
         int mSize;             // key的个数
+
+        public SimpleArrayMap() {
+            mHashes = ContainerHelpers.EMPTY_INTS;
+            mArray = ContainerHelpers.EMPTY_OBJECTS;
+            mSize = 0;
+        }
+
+        public SimpleArrayMap(int capacity) {
+            if (capacity == 0) {
+                mHashes = ContainerHelpers.EMPTY_INTS;
+                mArray = ContainerHelpers.EMPTY_OBJECTS;
+            } else {
+                allocArrays(capacity);
+            }
+            mSize = 0;
+        }
 
     }
 ```
